@@ -1,0 +1,53 @@
+name: Java CI with Docker and Secret Scan
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  # --- JOB 1: Scan for secrets ---
+  scan-secrets:
+    name: 🛡️ Scan for Secrets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install and Configure git-secrets
+        run: |
+          git clone https://github.com/awslabs/git-secrets.git
+          cd git-secrets
+          sudo make install
+          cd .. && rm -rf git-secrets
+          git secrets --install
+          git secrets --register-aws
+
+      - name: Run Secret Scan
+        run: git secrets --scan -r .
+
+  # --- JOB 2: Build the Docker image ---
+  build-docker:
+    name: 🐳 Build Docker Image
+    runs-on: ubuntu-latest
+    # This is the key: This job will ONLY run if 'scan-secrets' job is successful.
+    needs: scan-secrets
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          # We are only building, not pushing to a registry
+          push: false
+          tags: my-java-app:latest

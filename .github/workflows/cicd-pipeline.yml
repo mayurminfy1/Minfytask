@@ -7,9 +7,9 @@ on:
     branches: [ main, master ]
 
 jobs:
-  # --- JOB 1: Scan for secrets ---
+  
   scan-secrets:
-    name: 🛡️ Scan for Secrets
+    name: Scan for Secrets
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -29,11 +29,11 @@ jobs:
       - name: Run Secret Scan
         run: git secrets --scan -r .
 
-  # --- JOB 2: Build the Docker image ---
+  
   build-docker:
-    name: 🐳 Build Docker Image
+    name: Build Docker Image
     runs-on: ubuntu-latest
-    # This is the key: This job will ONLY run if 'scan-secrets' job is successful.
+    
     needs: scan-secrets
 
     steps:
@@ -48,6 +48,6 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          # We are only building, not pushing to a registry
+          
           push: false
           tags: my-java-app:latest
